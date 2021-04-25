@@ -1,0 +1,58 @@
+<html>
+    <head><meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>Лучшие туристические места</title>
+		<link rel="stylesheet" href="/../../static/style.css">
+    </head>
+    <body>
+		<div id="header">
+			<a href="/{{login}}/{{point}}/{{distance}}"><img src="/../../static/bag2.png" id="logo"></a>
+			<div id="title">Лучшие туристические места</a></div>
+		</div>
+		<table>
+			<tr>
+				<td>
+					<img src="{{user.pict}}" id="user-big-image">
+				</td>
+				<td width="300px">
+					<h1>{{user.place}}</h1>
+					<font size="4">{{user.info}}</font>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Похожие места<br>
+					 <table>
+						{% for user in subscriptions %}
+						<tr>
+							<td>
+								<a href="http://64.cshse.beget.tech/{{login}}/place/{{user.id}}"><img src="http://64.cshse.beget.tech/static/{{user.pict}}" class="user-image"></a>
+							</td>
+							<td>
+								<a href="http://64.cshse.beget.tech/{{login}}/place/{{user.id}}">{{user.place}}</a><br>{{user.country}}
+							</td>
+						</tr>
+						{% endfor %}
+					</table>
+				</td>
+				<td>
+					<h2>Комментарии</h2>
+					<form method="POST" action="">
+						<textarea name= "message_text" /></textarea><br>
+						<input type = "submit" value="Отправить комментарий">
+					</form>
+					{% for message in messages %}
+					Пользователь: {{message.user}}
+					<br>Дата: <i>{{message.time}}</i><br>
+					{{message.text}}<br>
+					<br>
+					{% endfor %}
+				</td>
+				<td>
+					<form method="POST" action="">
+						<input type = "submit" name='delete_button' value="Удалить все комментарии">
+					</form>
+				</td>
+			</tr>
+		</table>
+    </body>
+</html>

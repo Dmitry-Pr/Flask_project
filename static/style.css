@@ -1,0 +1,56 @@
+#header {
+	width: 100%;
+	height: 70px;
+	line-height: 70px;
+	background-color: OliveDrab;
+	color: yellow;
+	font-size: 30px;
+}
+
+body {
+    background: DarkSeaGreen
+}
+#title {
+	display: inline-block;
+	vertical-align: middle;
+}
+
+#logo {
+	height: 50px;
+	padding: 10px;
+	float: left;
+}
+
+td {
+    width: 33%;
+	vertical-align: top;
+    align: justify;
+    border-bottom: 2px solid DarkGreen;
+}
+
+textarta {
+	width: 300px;
+}
+#user-friends {
+	font-size:10px;
+	width: 250px
+}
+
+#user-big-image {
+	width: 100%;
+}
+.user-image {
+	width: 100%;
+	padding: 10px;
+	border-radius: 50%;
+}
+
+#login_form {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 450px;
+    background-color: YellowGreen;
+    border: 1px solid gray;
+    border-radius: 5px;
+    padding: 10px;
+}
