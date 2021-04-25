@@ -71,7 +71,10 @@ def find(user_id):
             return redirect('/')
         elif 'place' in request.form:
             if len(request.form['place']) > 0:
-                dist = request.form['dist'] if request.form['dist'] != '' else '500'
+                if request.form['dist'] == '' or request.form['dist'].isdigit() is False:
+                    dist = '500'
+                else:
+                    dist = request.form['dist']
                 return redirect('/' + user_id + '/' + request.form['place'] + '/' + dist)
     return render_template('index.html', data={}, login=user_id, text='', dist='', name=get_user_name(user_id))
 
@@ -89,7 +92,13 @@ def main(user_id, place, dist):
         elif 'delete' in request.form:
             delete_liked(user_id, request.form['hid'])
         elif 'search' in request.form:
-            return redirect('/' + user_id + '/' + request.form['place'] + '/' + request.form['dist'])
+            if 'place' in request.form:
+                if len(request.form['place']) > 0:
+                    if request.form['dist'] == '' or request.form['dist'].isdigit() is False:
+                        dist = '500'
+                    else:
+                        dist = request.form['dist']
+            return redirect('/' + user_id + '/' + request.form['place'] + '/' + dist)
     all_places = get_all_places(place, dist, user_id)
     return render_template('index.html',
                            data=all_places,
@@ -138,10 +147,13 @@ def user(user_id, place_id):
 
 @app.route("/<user_id>/likes", methods=['GET', 'POST'])
 def likes(user_id):
+    places = get_user_likes(user_id)
+    data = [get_place_info(el) for el in places]
     return render_template(
         'likes.html',
         login=user_id,
-        data=get_user_likes(user_id)
+        data=data,
+        name=get_user_name(user_id)
     )
 
 
@@ -167,7 +179,10 @@ def get_place_info(place_id):  # Получить информацию о пол
             'place': res['name'],
             'photos': photos,
             'place_id': place_id,
+            'country': res['plus_code']['compound_code'].split()[-1],
             'rating': res['rating'],
+            'link': res['url'],
+            'liked': True
 
         }
     except KeyError:
@@ -186,6 +201,8 @@ def get_all_places(place, dist, user_id):  # Получить список ин�
     }
     serv_geocode = 'https://maps.googleapis.com/maps/api/geocode/json'
     response = requests.get(serv_geocode, params=params_geocode).json()
+    if len(response['results']) == 0:
+        return []
     lat = response['results'][0]['geometry']['location']['lat']
     lng = response['results'][0]['geometry']['location']['lng']
     params = {
@@ -200,21 +217,15 @@ def get_all_places(place, dist, user_id):  # Получить список ин�
     res = response.json()['results']
     global a
     a = []
-    id = 0
     for i in range(len(res)):
         d = {}
-        d['id'] = id
         d['place_id'] = res[i]['place_id']
-        id += 1
         d['place'] = res[i]['name']
         try:
             d['pict'] = res[i]['photos'][0]['photo_reference']
         except KeyError:
             d['pict'] = 'Не найдено'
         d['country'] = res[i]['plus_code']['compound_code'].split()[-1]
-        d['type'] = 'attraction'
-        d['info'] = ''
-        a.append(d)
         d['pict'] = get_pict(d['pict'])
         db_sess = db_session.create_session()
         ab = []
@@ -224,6 +235,7 @@ def get_all_places(place, dist, user_id):  # Получить список ин�
             d['liked'] = True
         else:
             d['liked'] = False
+        a.append(d)
     all_places = [dict(row, n=i) for i, row in enumerate(a)]  # Создаем список строк из таблицы
     return all_places
 
@@ -323,7 +335,7 @@ def get_user_name(user_id):
 
 
 def get_user_likes(user_id):
-    return {}
+    return []
 
 
 if __name__ == "__main__":  # Запуск приложения при вызове модуля
