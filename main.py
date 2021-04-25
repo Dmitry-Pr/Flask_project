@@ -15,19 +15,6 @@ from flask import redirect  # Для автоматического перена
 import datetime  # Для получения текущей даты и врмени
 from data import db_session
 
-# Создаем связь с базой данных
-# XXX - заменить на Ваш номер
-# YYY - заменить на Ваш пароль из Яндекс.Контеста, К КОТОРОМУ В НАЧАЛЕ ПРИПИСАНО ЧЕТЫРЕ СИМВОЛА Qq!1
-
-username = "cshse_64"
-passwd = "Qq!1bD9aQJUd5Y"
-db_name = "cshse_64"
-
-# Раскомментировать после указания базы, логина и пароля
-# engine = create_engine("mysql://" + username + ":" + passwd + "@localhost/" + db_name + "?charset=utf8", pool_size=10,
-#                        max_overflow=20, echo=True)
-
-# Создаем приложение
 app = Flask(__name__)
 
 pswd = ''
@@ -80,11 +67,13 @@ def sign_in():
 @app.route("/<user_id>", methods=['GET', 'POST'])
 def find(user_id):
     if request.method == 'POST':
-        if 'place' in request.form:
+        if 'out' in request.form:
+            return redirect('/')
+        elif 'place' in request.form:
             if len(request.form['place']) > 0:
                 dist = request.form['dist'] if request.form['dist'] != '' else '500'
                 return redirect('/' + user_id + '/' + request.form['place'] + '/' + dist)
-    return render_template('index.html', data={}, login=user_id, text='', dist='')
+    return render_template('index.html', data={}, login=user_id, text='', dist='', name=get_user_name(user_id))
 
 
 @app.route("/<user_id>/<place>/<dist>", methods=['GET', 'POST'])  # Обрабатываем корневой путь
@@ -105,13 +94,14 @@ def main(user_id, place, dist):
     return render_template('index.html',
                            data=all_places,
                            login=user_id,
+                           name=get_user_name(user_id),
                            text=place,
                            dist=dist)
 
 
 # Обрабатываем пути вида user/XXX, где XXX - user_id
 # Вызов страницы может быть методами с GET или POST
-@app.route("/<user_id>/place/<int:place_id>", methods=['GET', 'POST'])
+@app.route("/<user_id>/place/<place_id>", methods=['GET', 'POST'])
 def user(user_id, place_id):
     global distance, point, a
     print(a)
@@ -124,8 +114,8 @@ def user(user_id, place_id):
         return redirect('/' + user_id + '/place/' + str(
             place_id))  # Необходимо еще раз перейти на эту страницу, но уже без вызова меода POST
 
-    user_info = get_place_info(place_id)
-    print(user_info)
+    place_info = get_place_info(place_id)
+    print(place_info)
     # place_comments = get_comments_about_place(place_id)  # Получить все сообщения пользователя
 
     # user_subscriptions = get_same_places(place_id)  # Получить ID всех подписок пользователя
@@ -137,12 +127,22 @@ def user(user_id, place_id):
 
     return render_template('user.html',
                            login=user_id,
-                           user=user_info,
+                           place=place_info,
                            point=point,
-                           distance=distance
+                           distance=distance,
+                           name=get_user_name(user_id)
                            # messages=place_comments,
                            # subscriptions=user_subscriptions_info,
                            )
+
+
+@app.route("/<user_id>/likes", methods=['GET', 'POST'])
+def likes(user_id):
+    return render_template(
+        'likes.html',
+        login=user_id,
+        data=get_user_likes(user_id)
+    )
 
 
 def dump(x):  # Для отладки
@@ -150,13 +150,29 @@ def dump(x):  # Для отладки
 
 
 def get_place_info(place_id):  # Получить информацию о пользователе по user_id
-    global a
-    place_info = {}
-    for el in a:
-        if el['id'] == place_id:
-            place_info = el
-            break
-    return place_info
+    serv = 'https://maps.googleapis.com/maps/api/place/details/json'
+    params = {
+        'key': 'AIzaSyCO-AM_xATjnsGaC8xZXAfoVsg7RSriD8A',
+        'place_id': place_id,
+        'language': 'ru'
+    }
+    response = requests.get(serv, params).json()
+    try:
+        res = response['result']
+        ph = res['photos']
+        photos = [get_pict(el['photo_reference']) for el in ph]
+        if len(photos) > 10:
+            photos = photos[:10]
+        d = {
+            'place': res['name'],
+            'photos': photos,
+            'place_id': place_id,
+            'rating': res['rating'],
+
+        }
+    except KeyError:
+        d = {}
+    return d
 
 
 def get_all_places(place, dist, user_id):  # Получить список информации о всех пользователях
@@ -199,17 +215,10 @@ def get_all_places(place, dist, user_id):  # Получить список ин�
         d['type'] = 'attraction'
         d['info'] = ''
         a.append(d)
-        params = {
-            'key': 'AIzaSyCO-AM_xATjnsGaC8xZXAfoVsg7RSriD8A',
-            'maxwidth': '400',
-            'photoreference': d['pict']
-        }
-        serv = 'https://maps.googleapis.com/maps/api/place/photo'
-        response = requests.get(serv, params=params)
-        d['pict'] = response.url
+        d['pict'] = get_pict(d['pict'])
         db_sess = db_session.create_session()
         ab = []
-        for user in db_sess.query(LikePlaces).filter(LikePlaces.place == d["place_id"] & LikePlaces.user_id == user_id):
+        for user in db_sess.query(LikePlaces).filter(LikePlaces.place == d["place_id"], LikePlaces.user_id == user_id):
             ab.append(user)
         if len(ab) > 0:
             d['liked'] = True
@@ -284,12 +293,21 @@ def user_in_base(log, pswd):
     return False
 
 
-
 def get_user_id(log, pswd):
     db_sess = db_session.create_session()
     user = db_sess.query(User).filter((User.login == log) & (User.password == pswd)).first()
     x = user.id
     return str(x)
+
+
+def get_pict(ref):
+    params = {
+        'key': 'AIzaSyCO-AM_xATjnsGaC8xZXAfoVsg7RSriD8A',
+        'maxwidth': '400',
+        'photoreference': ref
+    }
+    serv = 'https://maps.googleapis.com/maps/api/place/photo'
+    return f'{serv}?key={params["key"]}&maxwidth={params["maxwidth"]}&photoreference={params["photoreference"]}'
 
 
 def delete_liked(user_id, place_id):
@@ -298,6 +316,14 @@ def delete_liked(user_id, place_id):
 
 def add_liked(user_id, place_id):
     pass
+
+
+def get_user_name(user_id):
+    pass
+
+
+def get_user_likes(user_id):
+    return {}
 
 
 if __name__ == "__main__":  # Запуск приложения при вызове модуля

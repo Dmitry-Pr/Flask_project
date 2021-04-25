@@ -12,10 +12,12 @@ body {
 }
 #title {
 	display: inline-block;
-	vertical-align: middle;
+	vertical-align: top;
 }
-
-#logo {
+.nav {
+    display: inline-block;
+}
+.logo {
 	height: 50px;
 	padding: 10px;
 	float: left;
