@@ -12,40 +12,71 @@
 <form method="POST" action="">
     <h6>Введите место</h6><textarea name="place"/>{{text}}</textarea><br>
     <h6>На каком расстоянии исакть?</h6><textarea name="dist"/>{{dist}}</textarea><br>
-    <input type="submit" value="Найти">
+    <input type="submit" value="Найти" name="search">
+    <input type="hidden" value="1" name="2">
 </form>
 <table>
-    {% for user in data %}
-    {% if user.n % 3 == 0 %}
+    {% for place in data %}
+    {% if place.n % 3 == 0 %}
     <tr>
         <td>
             <font size="5">
-                <center>Страна: {{user.country}}</center>
+                <center>Страна: {{place.country}}</center>
             </font>
-            <br><a href="./../place/{{user.id}}"><img src="{{user.pict}}" class="user-image"></a>
-            <br><a href="./../place/{{user.id}}"><font size="15">
-            <center>{{user.place}}</center>
+            <br><a href="./../place/{{place.id}}"><img src="{{place.pict}}" class="user-image"></a>
+            <br><a href="./../place/{{place.id}}"><font size="15">
+            <center>{{place.place}}</center>
         </font></a>
+            <br>
+            <form method="POST" action="">
+                {% if place.liked == True %}
+                <input type="submit" value="Удалить из избранных" name="delete">
+                <input type="hidden" value="{{place.place_id}}" name="hid">
+                {% elif place.liked == False %}
+                <input type="submit" value="Добавить в избранные" name="add">
+                <input type="hidden" value="{{place.place_id}}" name="hid">
+                {% endif %}
+            </form>
         </td>
-        {% elif user.n % 3 == 1 %}
+        {% elif place.n % 3 == 1 %}
         <td>
             <font size="5">
-                <center>Страна: {{user.country}}</center>
+                <center>Страна: {{place.country}}</center>
             </font>
-            <br><a href="./../place/{{user.id}}"><img src="{{user.pict}}" class="user-image"></a>
-            <br><a href="./../place/{{user.id}}"><font size="15">
-            <center>{{user.place}}</center>
+            <br><a href="./../place/{{place.id}}"><img src="{{place.pict}}" class="user-image"></a>
+            <br><a href="./../place/{{place.id}}"><font size="15">
+            <center>{{place.place}}</center>
         </font></a>
+            <br>
+            <form method="POST" action="">
+                {% if place.liked == True %}
+                <input type="submit" value="Удалить из избранных" name="delete">
+                <input type="hidden" value="{{place.place_id}}" name="hid">
+                {% elif place.liked == False %}
+                <input type="submit" value="Добавить в избранные" name="add">
+                <input type="hidden" value="{{place.place_id}}" name="hid">
+                {% endif %}
+            </form>
         </td>
-        {% elif user.n % 3 == 2 %}
+        {% elif place.n % 3 == 2 %}
         <td>
             <font size="5">
-                <center>Страна: {{user.country}}</center>
+                <center>Страна: {{place.country}}</center>
             </font>
-            <br><a href="./../place/{{user.id}}"><img src="{{user.pict}}" class="user-image"></a>
-            <br><a href="./../place/{{user.id}}"><font size="15">
-            <center>{{user.place}}</center>
+            <br><a href="./../place/{{place.id}}"><img src="{{place.pict}}" class="user-image"></a>
+            <br><a href="./../place/{{place.id}}"><font size="15">
+            <center>{{place.place}}</center>
         </font></a>
+            <br>
+            <form method="POST" action="">
+                {% if place.liked == True %}
+                <input type="submit" value="Удалить из избранных" name="delete">
+                <input type="hidden" value="{{place.place_id}}" name="hid">
+                {% elif place.liked == False %}
+                <input type="submit" value="Добавить в избранные" name="add">
+                <input type="hidden" value="{{place.place_id}}" name="hid">
+                {% endif %}
+            </form>
         </td>
     </tr>
     {% endif %}

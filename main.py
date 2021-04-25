@@ -29,7 +29,6 @@ db_name = "cshse_64"
 # Создаем приложение
 app = Flask(__name__)
 
-log = ''
 pswd = ''
 country = ''
 a = []
@@ -44,7 +43,6 @@ def reg():
             return redirect('/sign_in')
         if len(request.form['login']) > 0 and len(request.form['password']) > 0:
             if 'regist' in request.form:
-                global log
                 global pswd
                 global country
                 country = request.form['country']
@@ -52,7 +50,8 @@ def reg():
                 pswd = request.form['password']
                 if not user_in_base(log, pswd):
                     add_user(log, pswd, country)
-                    return redirect('/' + log)
+                    id = get_user_id(log, pswd)
+                    return redirect('/' + id)
                 else:
                     return render_template('registration.html', flag=True, used=True)
         else:
@@ -67,9 +66,9 @@ def sign_in():
     if request.method == "POST":
         if 'sign' in request.form:
             if user_in_base(request.form['login'], request.form['password']):
-                global log
                 log = request.form['login']
-                return redirect('/' + log)
+                id = get_user_id(request.form['login'], request.form['password'])
+                return redirect('/' + id)
             else:
                 return render_template('sign_in.html', flag=False)
 
@@ -77,38 +76,42 @@ def sign_in():
         return render_template('sign_in.html', flag=True)
 
 
-@app.route("/<login>", methods=['GET', 'POST'])
-def find(login):
+@app.route("/<user_id>", methods=['GET', 'POST'])
+def find(user_id):
     if request.method == 'POST':
         if 'place' in request.form:
             if len(request.form['place']) > 0:
                 dist = request.form['dist'] if request.form['dist'] != '' else '500'
-                return redirect('/' + login + '/' + request.form['place'] + '/' + dist)
-    return render_template('index.html', data={}, login=login, text='', dist='')
+                return redirect('/' + user_id + '/' + request.form['place'] + '/' + dist)
+    return render_template('index.html', data={}, login=user_id, text='', dist='')
 
 
-@app.route("/<login>/<place>/<dist>", methods=['GET', 'POST'])  # Обрабатываем корневой путь
-def main(login, place, dist):
+@app.route("/<user_id>/<place>/<dist>", methods=['GET', 'POST'])  # Обрабатываем корневой путь
+def main(user_id, place, dist):
     global point, distance
     point = place
     distance = dist
     if request.method == 'POST':
         if 'out' in request.form:
             return redirect('/')
-        else:
-            return redirect('/' + login + '/' + request.form['place'] + '/' + request.form['dist'])
-    all_places = get_all_places(place, dist)
+        elif 'add' in request.form:
+            add_liked(user_id, request.form['hid'])
+        elif 'delete' in request.form:
+            delete_liked(user_id, request.form['hid'])
+        elif 'search' in request.form:
+            return redirect('/' + user_id + '/' + request.form['place'] + '/' + request.form['dist'])
+    all_places = get_all_places(place, dist, user_id)
     return render_template('index.html',
                            data=all_places,
-                           login=login,
+                           login=user_id,
                            text=place,
-                           dist=dist)  # Вызываем шаблон main.html, в который в качестве data передано all_users
+                           dist=dist)
 
 
-# Обрабатываем пути вида user/XXX, где XXX - user_id  
+# Обрабатываем пути вида user/XXX, где XXX - user_id
 # Вызов страницы может быть методами с GET или POST
-@app.route("/<login>/place/<int:place_id>", methods=['GET', 'POST'])
-def user(login, place_id):
+@app.route("/<user_id>/place/<int:place_id>", methods=['GET', 'POST'])
+def user(user_id, place_id):
     global distance, point, a
     print(a)
     if request.method == "POST":  # Если были переданы данные из формы методом POST
@@ -116,8 +119,8 @@ def user(login, place_id):
             place_delete_all_messages(place_id)  # То вызываем фукнцию удаления всех сообщений пользователя
         elif 'message_text' in request.form:  # Если была нажата кнопка отправки текста
             if len(request.form['message_text']) > 0:  # Если текст был введен
-                add_message(place_id, request.form['message_text'], login)  # Вызываем функцию записи данных
-        return redirect('/' + login + '/place/' + str(
+                add_message(place_id, request.form['message_text'], user_id)  # Вызываем функцию записи данных
+        return redirect('/' + user_id + '/place/' + str(
             place_id))  # Необходимо еще раз перейти на эту страницу, но уже без вызова меода POST
 
     user_info = get_place_info(place_id)
@@ -132,7 +135,7 @@ def user(login, place_id):
     #     user_subscriptions_info.append(get_place_info(subscription_id))
 
     return render_template('user.html',
-                           login=login,
+                           login=user_id,
                            user=user_info,
                            point=point,
                            distance=distance
@@ -155,7 +158,7 @@ def get_place_info(place_id):  # Получить информацию о пол
     return place_info
 
 
-def get_all_places(place, dist):  # Получить список информации о всех пользователях
+def get_all_places(place, dist, user_id):  # Получить список информации о всех пользователях
     try:
         dist = int(dist)
     except ValueError:
@@ -203,6 +206,7 @@ def get_all_places(place, dist):  # Получить список информа
         serv = 'https://maps.googleapis.com/maps/api/place/photo'
         response = requests.get(serv, params=params)
         d['pict'] = response.url
+        d['liked'] = False
     all_places = [dict(row, n=i) for i, row in enumerate(a)]  # Создаем список строк из таблицы
     return all_places
 
@@ -210,7 +214,7 @@ def get_all_places(place, dist):  # Получить список информа
 def get_comments_about_place(place_id):  # Получить все сообщения пользователя user_id
     connection = engine.connect()  # Подключаемся к базе
     # Все сообщения для которых user_id = user_id,
-    # отсортированные по времени от новых к старым 
+    # отсортированные по времени от новых к старым
     messages_table = connection.execute("select * from message where place_id=%s order by time DESC", place_id)
     connection.close()  # Закрываем подключение к базе
     messages = [dict(row) for row in messages_table]  # Создаем список строк из таблицы
@@ -269,6 +273,18 @@ def user_in_base(log, pswd):
     if len(list(res)) > 0:
         return True
     return False
+
+
+def get_user_id(log, pswd):
+    pass
+
+
+def delete_liked(user_id, place_id):
+    pass
+
+
+def add_liked(user_id, place_id):
+    pass
 
 
 if __name__ == "__main__":  # Запуск приложения при вызове модуля
