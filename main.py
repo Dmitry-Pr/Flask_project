@@ -4,11 +4,12 @@ import sys
 import os
 import flask
 import requests
-
+import sys
 from flask import Flask  # Подключаем Flask
 from flask import render_template  # Подключаем библиотеку для работы с шаблонами
 from sqlalchemy import create_engine  # Подключаем библиотеку для работы с базой данных
-
+from data.users import User
+from data.places import LikePlaces
 from flask import request  # Для обработка запросов из форм
 from flask import redirect  # Для автоматического перенаправления
 import datetime  # Для получения текущей даты и врмени
@@ -49,7 +50,7 @@ def reg():
                 log = request.form['login']
                 pswd = request.form['password']
                 if not user_in_base(log, pswd):
-                    add_user(log, pswd, country)
+                    add_user(log, pswd)
                     id = get_user_id(log, pswd)
                     return redirect('/' + id)
                 else:
@@ -206,7 +207,14 @@ def get_all_places(place, dist, user_id):  # Получить список ин�
         serv = 'https://maps.googleapis.com/maps/api/place/photo'
         response = requests.get(serv, params=params)
         d['pict'] = response.url
-        d['liked'] = False
+        db_sess = db_session.create_session()
+        ab = []
+        for user in db_sess.query(LikePlaces).filter(LikePlaces.place == d["place_id"] & LikePlaces.user_id == user_id):
+            ab.append(user)
+        if len(ab) > 0:
+            d['liked'] = True
+        else:
+            d['liked'] = False
     all_places = [dict(row, n=i) for i, row in enumerate(a)]  # Создаем список строк из таблицы
     return all_places
 
@@ -241,14 +249,13 @@ def get_same_places(place_id):  # Получить список всех под�
     return subscriptions
 
 
-def add_user(log, pswd, country):
-    connection = engine.connect()  # Устанавливаем соединение
-    trans = connection.begin()  # Открываем транзакцию
-    connection.execute("INSERT INTO user(login, password, country) VALUES (%s, %s, %s)",
-                       (log, pswd, country))
-
-    trans.commit()  # Применяем транзакцию
-    connection.close()
+def add_user(log, pswd):
+    user = User()
+    user.login = log
+    user.password = pswd
+    db_sess = db_session.create_session()
+    db_sess.add(user)
+    db_sess.commit()
 
 
 def add_message(place_id, message_text, login):  # Сохранить сообщение пользователя в базу
@@ -267,16 +274,22 @@ def add_message(place_id, message_text, login):  # Сохранить сообщ
 
 
 def user_in_base(log, pswd):
-    connection = engine.connect()
-    res = connection.execute("select * from user where login = %s and password = %s", (log, pswd))
-    connection.close()
-    if len(list(res)) > 0:
+    db_sess = db_session.create_session()
+    a = []
+    for user in db_sess.query(User).filter((User.login == log) & (User.password == pswd)):
+        a.append(user)
+
+    if len(list(a)) > 0:
         return True
     return False
 
 
+
 def get_user_id(log, pswd):
-    pass
+    db_sess = db_session.create_session()
+    user = db_sess.query(User).filter((User.login == log) & (User.password == pswd)).first()
+    x = user.id
+    return str(x)
 
 
 def delete_liked(user_id, place_id):

@@ -1,24 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css"
-          integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1"
-          crossorigin="anonymous">
-    <link rel="stylesheet" href="../static/style.css">
-    <title>Вход</title>
-</head>
-<body>
-<h1><center>Вход</center></h1>
+{% extends "base.html" %}
+
+{% block content %}
+<h1>
+    <center>Вход</center>
+</h1>
 <form id="login_form" method="post">
     <input type="text" class="form-control" id="login" placeholder="Введите логин" name="login">
     <br><input type="password" class="form-control" id="password" placeholder="Введите пароль" name="password">
     {% if not flag %}
     <br><font color="red">Такого пользователя нет</font>
     {% endif %}
-    <br><button type="submit" class="btn btn-primary" name="sign">Войти</button>
+    <br>
+    <button type="submit" class="btn btn-primary" name="sign">Войти</button>
     <br><a href="/../">Регистрация</a>
 </form>
-</body>
-</html>
+{% endblock %}
