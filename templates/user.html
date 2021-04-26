@@ -12,7 +12,8 @@
 </head>
 <body>
 <div id="header">
-    <div class="nav"><a href="/{{login}}/{{point}}/{{distance}}"><img src="/../../static/bag2.png" class="logo"></a></div>
+    <div class="nav"><a href="/{{login}}/{{point}}/{{distance}}"><img src="/../../static/bag2.png" class="logo"></a>
+    </div>
     <div class="nav" id="title">Лучшие туристические места</a></div>
 </div>
 <table>
@@ -38,11 +39,14 @@
             <br>
             {% endfor %}
         </td>
+        {% if '5878' in current_user.login %}
         <td>
+
             <form method="POST" action="">
                 <input class="btn btn-outline-dark" type="submit" name='delete_button' value="Удалить все комментарии">
             </form>
         </td>
+        {% endif %}
     </tr>
 </table>
 <div>User: {{name}}</div>

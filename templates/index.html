@@ -18,7 +18,10 @@
 </div>
 <h5>User: {{name}}</h5>
 <br>
+{% if current_user.is_authenticated %}
 <a href="/logout" class="btn btn-primary">Выйти</a>
+{% endif %}
+
 <br>
 <form method="POST" action="">
     <h6>Введите место</h6><textarea class="form-control" name="place"/>{{text}}</textarea><br>
