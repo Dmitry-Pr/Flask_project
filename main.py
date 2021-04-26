@@ -27,7 +27,7 @@ distance = ''
 
 @app.route('/favicon.ico')
 def fav():
-    pass
+    return ''
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -152,8 +152,14 @@ def user(user_id, place_id):
 
 @app.route("/<user_id>/likes", methods=['GET', 'POST'])
 def likes(user_id):
+    if request.method == 'POST':
+        if 'add' in request.form:
+            add_liked(user_id, request.form['hid'])
+        elif 'delete' in request.form:
+            delete_liked(user_id, request.form['hid'])
     places = get_user_likes(user_id)
     data = [dict(get_place_info(el), n=i) for i, el in enumerate(places)]
+    print(data)
     return render_template(
         'likes.html',
         login=user_id,
@@ -178,11 +184,14 @@ def get_place_info(place_id):  # Получить информацию о пол
         res = response['result']
         ph = res['photos']
         photos = [get_pict(el['photo_reference']) for el in ph]
+        if len(photos):
+            pict = photos[0]
         if len(photos) > 10:
             photos = photos[:10]
         d = {
             'place': res['name'],
             'photos': photos,
+            'pict': pict,
             'place_id': place_id,
             'country': res['plus_code']['compound_code'].split()[-1],
             'rating': res['rating'],
