@@ -11,6 +11,9 @@ from sqlalchemy import create_engine  # Подключаем библиотек�
 from data.users import User
 from data.places import LikePlaces
 from data.comments import Comments
+from data.registerform import RegisterForm
+from data.loginform import LoginForm
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask import request  # Для обработка запросов из форм
 from flask import redirect  # Для автоматического перенаправления
 import datetime  # Для получения текущей даты и врмени
@@ -18,6 +21,8 @@ from data import db_session
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
+login_manager = LoginManager()
+login_manager.init_app(app)
 
 pswd = ''
 country = ''
@@ -31,43 +36,55 @@ def fav():
     return ''
 
 
-@app.route('/', methods=['GET', 'POST'])
-def reg():
-    if request.method == "POST":
-        if 'sign_in' in request.form:
-            return redirect('/sign_in')
-        if len(request.form['login']) > 0 and len(request.form['password']) > 0:
-            if 'regist' in request.form:
-                global pswd
-                global country
-                country = request.form['country']
-                log = request.form['login']
-                pswd = request.form['password']
-                if not user_in_base(log, pswd):
-                    add_user(log, pswd)
-                    id = get_user_id(log, pswd)
-                    return redirect('/' + id)
-                else:
-                    return render_template('registration.html', flag=True, used=True)
-        else:
-            return render_template('registration.html', flag=False, used=False)
+@app.route('/')
+def greet():
+    return render_template('greet.html')
 
-    else:
-        return render_template('registration.html', flag=True, used=False)
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect("/")
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def reg():
+    form = RegisterForm()
+    if form.validate_on_submit():
+        if form.password.data != form.password_again.data:
+            return render_template('register.html', title='Регистрация',
+                                   form=form,
+                                   message="Пароли не совпадают")
+        db_sess = db_session.create_session()
+        if db_sess.query(User).filter(User.login == form.name.data).first():
+            return render_template('register.html', title='Регистрация',
+                                   form=form,
+                                   message="Такой пользователь уже есть")
+        user = User(
+            login=form.name.data,
+            email=form.email.data
+        )
+        user.set_password(form.password.data)
+        db_sess.add(user)
+        db_sess.commit()
+        return redirect('/sign_in')
+    return render_template('register.html', title='Регистрация', form=form)
 
 
 @app.route('/sign_in', methods=['GET', 'POST'])
 def sign_in():
-    if request.method == "POST":
-        if 'sign' in request.form:
-            if user_in_base(request.form['login'], request.form['password']):
-                id = get_user_id(request.form['login'], request.form['password'])
-                return redirect('/' + id)
-            else:
-                return render_template('sign_in.html', flag=False)
-
-    else:
-        return render_template('sign_in.html', flag=True)
+    form = LoginForm()
+    if form.validate_on_submit():
+        db_sess = db_session.create_session()
+        user = db_sess.query(User).filter(User.email == form.email.data).first()
+        if user and user.check_password(form.password.data):
+            login_user(user, remember=form.remember_me.data)
+            return redirect("/" + str(user.id))
+        return render_template('login.html',
+                               message="Неправильный логин или пароль",
+                               form=form)
+    return render_template('login.html', title='Авторизация', form=form)
 
 
 @app.route("/<user_id>", methods=['GET', 'POST'])
@@ -129,7 +146,7 @@ def user(user_id, place_id):
 
     place_info = get_place_info(place_id)
     print(place_info)
-    place_comments = get_comments_about_place(place_id, user_id)
+    place_comments = get_comments_about_place(place_id)
 
     return render_template('user.html',
                            login=user_id,
@@ -245,11 +262,11 @@ def get_all_places(place, dist, user_id):  # Получить список ин�
     return all_places
 
 
-def get_comments_about_place(place_id, user_id):
+def get_comments_about_place(place_id):
     db_sess = db_session.create_session()
     a = []
     for comment in db_sess.query(Comments).filter(Comments.place == place_id).all():
-        a.append([comment, get_user_name(user_id)])
+        a.append([comment, get_user_name(comment.user_id)])
     return a
 
 
@@ -293,9 +310,9 @@ def user_in_base(log, pswd):
     return False
 
 
-def get_user_id(log, pswd):
+def get_user_id(log):
     db_sess = db_session.create_session()
-    user = db_sess.query(User).filter((User.login == log) & (User.password == pswd)).first()
+    user = db_sess.query(User).filter(User.login == log).first()
     x = user.id
     return str(x)
 
@@ -337,6 +354,12 @@ def get_user_likes(user_id):
     for user in db_sess.query(LikePlaces).filter(LikePlaces.user_id == user_id).all():
         a.append(user.place)
     return a
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    db_sess = db_session.create_session()
+    return db_sess.query(User).get(user_id)
 
 
 if __name__ == "__main__":  # Запуск приложения при вызове модуля

@@ -3,6 +3,10 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Лучшие туристические места</title>
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css"
+          integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1"
+          crossorigin="anonymous">
     <link rel="stylesheet" href="/../../static/style.css">
     <link rel="icon" href="data:;base64,=">
 </head>
@@ -12,10 +16,14 @@
     <div class="nav" id="title">Лучшие туристические места</div>
     <div class="nav"><a href="/{{login}}/likes"><img src="/../../static/heart1.png" class="logo"></a></div>
 </div>
+<h5>User: {{name}}</h5>
+<br>
+<a href="/logout" class="btn btn-primary">Выйти</a>
+<br>
 <form method="POST" action="">
-    <h6>Введите место</h6><textarea name="place"/>{{text}}</textarea><br>
-    <h6>На каком расстоянии исакть?</h6><textarea name="dist"/>{{dist}}</textarea><br>
-    <input type="submit" value="Найти" name="search">
+    <h6>Введите место</h6><textarea class="form-control" name="place"/>{{text}}</textarea><br>
+    <h6>На каком расстоянии исакть?</h6><textarea class="form-control" name="dist"/>{{dist}}</textarea><br>
+    <input class="btn btn-primary" type="submit" value="Найти" name="search">
     <input type="hidden" value="1" name="2">
 </form>
 <table>
@@ -33,10 +41,10 @@
             <br>
             <form method="POST" action="">
                 {% if place.liked == True %}
-                <input type="submit" value="Удалить из избранных" name="delete">
+                <center><input class="btn btn-outline-danger" type="submit" value="Удалить из избранных" name="delete"></center>
                 <input type="hidden" value="{{place.place_id}}" name="hid">
                 {% elif place.liked == False %}
-                <input type="submit" value="Добавить в избранные" name="add">
+                <center><input class="btn btn-outline-warning" type="submit" value="Добавить в избранные" name="add"></center>
                 <input type="hidden" value="{{place.place_id}}" name="hid">
                 {% endif %}
             </form>
@@ -53,10 +61,10 @@
             <br>
             <form method="POST" action="">
                 {% if place.liked == True %}
-                <input type="submit" value="Удалить из избранных" name="delete">
+                <center><input class="btn btn-outline-danger" type="submit" value="Удалить из избранных" name="delete"></center>
                 <input type="hidden" value="{{place.place_id}}" name="hid">
                 {% elif place.liked == False %}
-                <input type="submit" value="Добавить в избранные" name="add">
+                <center><input class="btn btn-outline-warning" type="submit" value="Добавить в избранные" name="add"></center>
                 <input type="hidden" value="{{place.place_id}}" name="hid">
                 {% endif %}
             </form>
@@ -73,10 +81,10 @@
             <br>
             <form method="POST" action="">
                 {% if place.liked == True %}
-                <input type="submit" value="Удалить из избранных" name="delete">
+                <center><input class="btn btn-outline-danger" type="submit" value="Удалить из избранных" name="delete"></center>
                 <input type="hidden" value="{{place.place_id}}" name="hid">
                 {% elif place.liked == False %}
-                <input type="submit" value="Добавить в избранные" name="add">
+                <center><input class="btn btn-outline-warning" type="submit" value="Добавить в избранные" name="add"></center>
                 <input type="hidden" value="{{place.place_id}}" name="hid">
                 {% endif %}
             </form>
@@ -85,10 +93,5 @@
     {% endif %}
     {% endfor %}
 </table>
-<div>User: {{name}}</div>
-<form method="post">
-    <br>
-    <button type="submit" class="btn btn-primary" name="out">Выйти</button>
-</form>
 </body>
 </html>

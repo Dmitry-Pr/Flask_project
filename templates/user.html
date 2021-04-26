@@ -3,6 +3,10 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Лучшие туристические места</title>
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css"
+          integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1"
+          crossorigin="anonymous">
     <link rel="stylesheet" href="../../static/style.css">
     <link rel="icon" href="data:;base64,=">
 </head>
@@ -24,8 +28,8 @@
             <a href="{{place.link}}"><h4>Сылка</h4></a>
             <h2>Комментарии</h2>
             <form method="POST" action="">
-                <textarea name="message_text"/></textarea><br>
-                <input type="submit" value="Отправить комментарий">
+                <textarea class="md-textarea form-control" name="message_text"/></textarea><br>
+                <input class="btn btn-secondary" type="submit" value="Отправить комментарий">
             </form>
             {% for message, person in messages %}
             Пользователь: {{person}}
@@ -36,7 +40,7 @@
         </td>
         <td>
             <form method="POST" action="">
-                <input type="submit" name='delete_button' value="Удалить все комментарии">
+                <input class="btn btn-outline-dark" type="submit" name='delete_button' value="Удалить все комментарии">
             </form>
         </td>
     </tr>
