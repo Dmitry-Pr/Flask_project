@@ -65,7 +65,6 @@ pymorphy2-dicts==2.4.393442.3710985
 pyparsing==2.4.7
 PyQt5==5.15.1
 PyQt5-sip==12.8.1
-pyqt5-tools==5.13.2.1.6rc1
 pyqtgraph==0.11.1
 pyrsistent==0.17.3
 python-dateutil==2.8.1
@@ -73,7 +72,6 @@ python-dotenv==0.14.0
 PyTMX==3.24
 pytx==0.5.10
 pytz==2020.5
-pywin32==300
 pywin32-ctypes==0.2.0
 pywinpty==0.5.7
 pyzmq==21.0.1
