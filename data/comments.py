@@ -14,3 +14,6 @@ class Comments(SqlAlchemyBase):
 
     user_id = sqlalchemy.Column(sqlalchemy.Integer,
                                 sqlalchemy.ForeignKey("users.id"))
+    text = sqlalchemy.Column(sqlalchemy.String, nullable=True)
+    time = sqlalchemy.Column(sqlalchemy.Date,
+                             default=datetime.date.today)

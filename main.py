@@ -10,6 +10,7 @@ from flask import render_template  # Подключаем библиотеку �
 from sqlalchemy import create_engine  # Подключаем библиотеку для работы с базой данных
 from data.users import User
 from data.places import LikePlaces
+from data.comments import Comments
 from flask import request  # Для обработка запросов из форм
 from flask import redirect  # Для автоматического перенаправления
 import datetime  # Для получения текущей даты и врмени
@@ -113,40 +114,30 @@ def main(user_id, place, dist):
                            dist=dist)
 
 
-# Обрабатываем пути вида user/XXX, где XXX - user_id
-# Вызов страницы может быть методами с GET или POST
 @app.route("/<user_id>/place/<place_id>", methods=['GET', 'POST'])
 def user(user_id, place_id):
     global distance, point, a
     print(a)
-    if request.method == "POST":  # Если были переданы данные из формы методом POST
-        if 'delete_button' in request.form:  # Если была нажата кнопка delete_button
-            place_delete_all_messages(place_id)  # То вызываем фукнцию удаления всех сообщений пользователя
-        elif 'message_text' in request.form:  # Если была нажата кнопка отправки текста
-            if len(request.form['message_text']) > 0:  # Если текст был введен
-                add_message(place_id, request.form['message_text'], user_id)  # Вызываем функцию записи данных
+    if request.method == "POST":
+        if 'delete_button' in request.form:
+            place_delete_all_messages(place_id)
+        elif 'message_text' in request.form:
+            if len(request.form['message_text']) > 0:
+                add_message(place_id, request.form['message_text'], user_id)
         return redirect('/' + user_id + '/place/' + str(
-            place_id))  # Необходимо еще раз перейти на эту страницу, но уже без вызова меода POST
+            place_id))
 
     place_info = get_place_info(place_id)
     print(place_info)
-    # place_comments = get_comments_about_place(place_id)  # Получить все сообщения пользователя
-
-    # user_subscriptions = get_same_places(place_id)  # Получить ID всех подписок пользователя
-    # user_subscriptions_info = []  #
-
-    # for sub in user_subscriptions:
-    #     subscription_id = sub['id']
-    #     user_subscriptions_info.append(get_place_info(subscription_id))
+    place_comments = get_comments_about_place(place_id, user_id)
 
     return render_template('user.html',
                            login=user_id,
                            place=place_info,
                            point=point,
                            distance=distance,
-                           name=get_user_name(user_id)
-                           # messages=place_comments,
-                           # subscriptions=user_subscriptions_info,
+                           name=get_user_name(user_id),
+                           messages=place_comments,
                            )
 
 
@@ -168,11 +159,11 @@ def likes(user_id):
     )
 
 
-def dump(x):  # Для отладки
+def dump(x):
     return flask.json.dumps(x)
 
 
-def get_place_info(place_id):  # Получить информацию о пользователе по user_id
+def get_place_info(place_id):
     serv = 'https://maps.googleapis.com/maps/api/place/details/json'
     params = {
         'key': 'AIzaSyCO-AM_xATjnsGaC8xZXAfoVsg7RSriD8A',
@@ -254,34 +245,21 @@ def get_all_places(place, dist, user_id):  # Получить список ин�
     return all_places
 
 
-def get_comments_about_place(place_id):  # Получить все сообщения пользователя user_id
-    connection = engine.connect()  # Подключаемся к базе
-    # Все сообщения для которых user_id = user_id,
-    # отсортированные по времени от новых к старым
-    messages_table = connection.execute("select * from message where place_id=%s order by time DESC", place_id)
-    connection.close()  # Закрываем подключение к базе
-    messages = [dict(row) for row in messages_table]  # Создаем список строк из таблицы
-    return messages
+def get_comments_about_place(place_id, user_id):
+    db_sess = db_session.create_session()
+    a = []
+    for comment in db_sess.query(Comments).filter(Comments.place == place_id).all():
+        a.append([comment, get_user_name(user_id)])
+    return a
 
 
-def place_delete_all_messages(place_id):  # Удалить все сообщения пользователя user_id
-    connection = engine.connect()  # Подключаемся к базе
-    trans = connection.begin()  # Запускаем транзакцию
-    connection.execute("DELETE FROM message WHERE place_id=%s", place_id)  # Запрос на удаление строк из таблицы
-    trans.commit()  # Применяем транзакцию
-    connection.close()
+def place_delete_all_messages(place_id):
+    db_sess = db_session.create_session()
+    db_sess.query(Comments).filter(Comments.place == place_id).delete()
+    db_sess.commit()
+    # Запрос на удаление строк из таблицы
+
     return
-
-
-def get_same_places(place_id):  # Получить список всех подписок пользователя
-    connection = engine.connect()  # Подключаемся к базе
-    type = list(connection.execute('select type from Places where id = %s', place_id))[0]
-    subscriptions_table = connection.execute("select * from Places where type = %s",
-                                             type)  # Все подписки для которых user1_id = user_id
-    connection.close()  # Закрываем подключение к базе
-    subscriptions = [dict(row) for row in subscriptions_table if
-                     dict(row)['id'] != place_id]  # Создаем список строк из таблицы
-    return subscriptions
 
 
 def add_user(log, pswd):
@@ -294,17 +272,13 @@ def add_user(log, pswd):
 
 
 def add_message(place_id, message_text, login):  # Сохранить сообщение пользователя в базу
-    connection = engine.connect()  # Устанавливаем соединение
-    trans = connection.begin()  # Открываем транзакцию
-    current_time = datetime.datetime.now()  # Получаем теущие дату и время
-
-    # Записываем данные в таблицу
-    connection.execute("INSERT INTO message(place_id, text, time, user) VALUES (%s, %s, %s, %s)",
-                       (place_id, message_text, current_time, login))
-
-    trans.commit()  # Применяем транзакцию
-    connection.close()
-
+    comment = Comments()
+    comment.place = place_id
+    comment.user_id = login
+    comment.text = message_text
+    db_sess = db_session.create_session()
+    db_sess.add(comment)
+    db_sess.commit()
     return
 
 
