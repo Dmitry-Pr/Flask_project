@@ -16,12 +16,18 @@ import datetime  # Для получения текущей даты и врме
 from data import db_session
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 
 pswd = ''
 country = ''
 a = []
 point = ''
 distance = ''
+
+
+@app.route('/favicon.ico')
+def fav():
+    pass
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -54,7 +60,6 @@ def sign_in():
     if request.method == "POST":
         if 'sign' in request.form:
             if user_in_base(request.form['login'], request.form['password']):
-                log = request.form['login']
                 id = get_user_id(request.form['login'], request.form['password'])
                 return redirect('/' + id)
             else:
@@ -148,7 +153,7 @@ def user(user_id, place_id):
 @app.route("/<user_id>/likes", methods=['GET', 'POST'])
 def likes(user_id):
     places = get_user_likes(user_id)
-    data = [get_place_info(el) for el in places]
+    data = [dict(get_place_info(el), n=i) for i, el in enumerate(places)]
     return render_template(
         'likes.html',
         login=user_id,
@@ -323,19 +328,32 @@ def get_pict(ref):
 
 
 def delete_liked(user_id, place_id):
-    pass
+    db_sess = db_session.create_session()
+    db_sess.query(LikePlaces).filter((LikePlaces.user_id == user_id) & (LikePlaces.place == place_id)).delete()
+    db_sess.commit()
 
 
 def add_liked(user_id, place_id):
-    pass
+    place1 = LikePlaces()
+    place1.place = place_id
+    place1.user_id = user_id
+    db_sess = db_session.create_session()
+    db_sess.add(place1)
+    db_sess.commit()
 
 
 def get_user_name(user_id):
-    pass
+    db_sess = db_session.create_session()
+    user = db_sess.query(User).filter(User.id == int(user_id)).all()[0]
+    return user.login
 
 
 def get_user_likes(user_id):
-    return []
+    db_sess = db_session.create_session()
+    a = []
+    for user in db_sess.query(LikePlaces).filter(LikePlaces.user_id == user_id).all():
+        a.append(user.place)
+    return a
 
 
 if __name__ == "__main__":  # Запуск приложения при вызове модуля
