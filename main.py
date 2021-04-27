@@ -344,8 +344,11 @@ def add_liked(user_id, place_id):
 
 def get_user_name(user_id):
     db_sess = db_session.create_session()
-    user = db_sess.query(User).filter(User.id == int(user_id)).all()[0]
-    return user.login
+    try:
+        user = db_sess.query(User).filter(User.id == int(user_id)).all()[0]
+        return user.login
+    except IndexError:
+        return ''
 
 
 def get_user_likes(user_id):
