@@ -6,6 +6,7 @@ from .db_session import SqlAlchemyBase
 
 
 class LikePlaces(SqlAlchemyBase):
+    '''Модель избранных мест'''
     __tablename__ = 'likeplaces'
 
     id = sqlalchemy.Column(sqlalchemy.Integer,
