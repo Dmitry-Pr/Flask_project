@@ -6,6 +6,7 @@ from .db_session import SqlAlchemyBase
 
 
 class Comments(SqlAlchemyBase):
+    '''Модель комментариев'''
     __tablename__ = 'comments'
 
     id = sqlalchemy.Column(sqlalchemy.Integer,
