@@ -7,6 +7,7 @@ from flask_login import UserMixin
 
 
 class User(SqlAlchemyBase, UserMixin):
+    '''Модель пользователя'''
     __tablename__ = 'users'
 
     id = sqlalchemy.Column(sqlalchemy.Integer,
@@ -18,7 +19,9 @@ class User(SqlAlchemyBase, UserMixin):
     places = orm.relation("LikePlaces", back_populates='user')
 
     def set_password(self, password):
+        '''Создание хешированного пароля'''
         self.hashed_password = generate_password_hash(password)
 
     def check_password(self, password):
+        '''Проверка пароля'''
         return check_password_hash(self.hashed_password, password)
